@@ -1,7 +1,7 @@
 #MicroXplorer Configuration settings - do not modify
 FREERTOS.FootprintOK=true
 FREERTOS.IPParameters=Tasks01,configUSE_NEWLIB_REENTRANT,FootprintOK
-FREERTOS.Tasks01=defaultTask,24,128,StartDefaultTask,Default,NULL,Dynamic,NULL,NULL;RFIDTask,8,128,rfid_processing,Default,NULL,Dynamic,NULL,NULL;pollingBtnTask,8,128,polling_btn,Default,NULL,Dynamic,NULL,NULL
+FREERTOS.Tasks01=defaultTask,24,128,StartDefaultTask,Default,NULL,Dynamic,NULL,NULL;RFIDTask,8,128,rfid_processing,Default,NULL,Dynamic,NULL,NULL;ServoMotorTask,8,128,ctrl_servomotor,Default,NULL,Dynamic,NULL,NULL
 FREERTOS.configUSE_NEWLIB_REENTRANT=1
 File.Version=6
 KeepUserPlacement=false

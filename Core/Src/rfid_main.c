@@ -13,9 +13,11 @@ uint8_t rfid_check_flag=0;  // 현재 rfid를 checking중인지
 extern SPI_HandleTypeDef hspi1;   // for RFID interface
 extern TIM_HandleTypeDef htim3;   // for servo motor interface
 
-volatile int T300ms_counter=0;
+extern volatile int TIM2_300ms_counter;
+extern volatile int TIM2_1ms_RFID_LED;
 uint8_t readData;   // 1 byte save variable
 uint8_t rxDataStr[MAX_LEN];   // rfid tagging data, MAX_LEN = 16
+bool isTagged = false;
 
 static uint8_t rfid_status = NORMAL;
 
@@ -23,6 +25,10 @@ cardDB cardInfo = {0,{0}};
 
 void set_rfid_status(uint8_t pRFID_STAUS){
 	rfid_status = pRFID_STAUS;
+}
+
+uint8_t get_rfid_status(void){
+	return rfid_status;
 }
 
 // RFID READER initialize function
@@ -51,40 +57,48 @@ void rfid_reader_init(void)
 // RFID tagging processing function
 void rfid_tag_processing(void) // <- I'm gonna use in while loop
 {
-	switch(rfid_status){
-	case NORMAL:
-		if (T300ms_counter >= 300)  // polling 300ms rfid reader
-		{
-			T300ms_counter = 0;
-			//1. Make sure that the card is touching the reader.
-			// == RFID contack check
-			readData = mfrc522_request(PICC_REQALL, rxDataStr);
-			if (readData == CARD_FOUND) {
-				// 2.Read the card information.
-				for (int i = 0; i < MAX_LEN; i++)
-					rxDataStr[i] = ' ';
-				readData = mfrc522_get_card_serial(rxDataStr);
-				printf("rfid:");
+	if (TIM2_300ms_counter >= 300)  // polling 300ms rfid reader
+	{
+		TIM2_300ms_counter = 0;
+		//1. Make sure that the card is touching the reader.
+		// == RFID contack check
+		readData = mfrc522_request(PICC_REQALL, rxDataStr);
+		if (readData == CARD_FOUND) {
+			// 2.Read the card information.
+			for (int i = 0; i < MAX_LEN; i++)
+				rxDataStr[i] = ' ';
+			readData = mfrc522_get_card_serial(rxDataStr);
+
+			switch (rfid_status) {
+			case NORMAL:
+				printf("tagged rfid : ");
 				for (int i = 0; i < 5; i++) {
 					printf("%02x ", rxDataStr[i]);
 				}
 				printf("\n");
-				 register_rfid_key(&cardInfo, &rxDataStr);
-				 print_registered_keys(&cardInfo);
+				break;
+			case ENROLL:
+				register_rfid_key(&cardInfo, &rxDataStr);
+				break;
+			case DELETE:
 				if (removeCard(&cardInfo, &rxDataStr)) {
 					printf("Card Removed\n");
+				} else {
+					printf("Can't removed card!!\n");
 				}
-				 print_registered_keys(&cardInfo);
+				break;
 			}
 		}
-		break;
-	case ENROLL:
-
-		break;
-	case DELETE:
-		break;
-	case RETREIVE_ALL:
-		break;
+	    // LED Blinking logic for ENROLL state
+	    if (rfid_status == ENROLL) {
+	        if (TIM2_1ms_RFID_LED >= 500) {
+	            TIM2_1ms_RFID_LED = 0;
+	            HAL_GPIO_TogglePin(GPIOB, LED0_Pin);
+	        }
+	    } else {
+	        // Ensure LED is off when not in ENROLL state
+	        HAL_GPIO_WritePin(GPIOB, LED0_Pin, GPIO_PIN_RESET);
+	    }
 	}
 }
 
@@ -114,14 +128,19 @@ void register_rfid_key(cardDB* card, uint8_t* newKey) {
 }
 
 void print_registered_keys(cardDB* card) {
-    printf("Print All registered RFID Keys:\n");
-    for (int i = 0; i < card->registeredKeyCount; i++) {
-        printf("Key %d: ", i + 1);
-        for (int j = 0; j < 5; j++) {
-            printf("%02x ", card->regCardKey[i][j]);
-        }
-        printf("\n");
+    if(card->registeredKeyCount > 0){
+		printf("Print All registered RFID Keys:\n");
+		for (int i = 0; i < card->registeredKeyCount; i++) {
+			printf("Key %d: ", i + 1);
+			for (int j = 0; j < 5; j++) {
+				printf("%02x ", card->regCardKey[i][j]);
+			}
+			printf("\n");
+		}
+    }else{
+		printf("nothing to print...\n");
     }
+    return;
 }
 
 bool removeCard(cardDB* card, uint8_t* pRxDataStr) {

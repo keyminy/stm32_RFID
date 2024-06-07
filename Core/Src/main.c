@@ -63,10 +63,10 @@ const osThreadAttr_t RFIDTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
-/* Definitions for pollingBtnTask */
-osThreadId_t pollingBtnTaskHandle;
-const osThreadAttr_t pollingBtnTask_attributes = {
-  .name = "pollingBtnTask",
+/* Definitions for ServoMotorTask */
+osThreadId_t ServoMotorTaskHandle;
+const osThreadAttr_t ServoMotorTask_attributes = {
+  .name = "ServoMotorTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
@@ -74,6 +74,9 @@ const osThreadAttr_t pollingBtnTask_attributes = {
 uint8_t rx_data;
 
 volatile int TIM2_1ms_counter=0;
+volatile int TIM2_1ms_RFID_LED=0;
+volatile int TIM2_300ms_taggingProcess=0;
+volatile int TIM2_300ms_counter=0;
 volatile int TIM2_servo_motor_count=0;
 /* USER CODE END PV */
 
@@ -87,7 +90,7 @@ static void MX_SPI1_Init(void);
 static void MX_TIM3_Init(void);
 void StartDefaultTask(void *argument);
 void rfid_processing(void *argument);
-void polling_btn(void *argument);
+void ctrl_servomotor(void *argument);
 
 /* USER CODE BEGIN PFP */
 extern void led_all_on(void);
@@ -111,7 +114,7 @@ extern void rfid_tag_processing(void);
 //-- call by SysTick_Handler of stm32f4xx_it.c
 // SysTick_Handler : ARM core default timer
 volatile int t1ms_counter=0;
-extern volatile int T300ms_counter;
+
 void HAL_SYSTICK_Handler()
 {
 	t1ms_counter++;   // 1ms timer counter
@@ -207,8 +210,8 @@ int main(void)
   /* creation of RFIDTask */
   RFIDTaskHandle = osThreadNew(rfid_processing, NULL, &RFIDTask_attributes);
 
-  /* creation of pollingBtnTask */
-  pollingBtnTaskHandle = osThreadNew(polling_btn, NULL, &pollingBtnTask_attributes);
+  /* creation of ServoMotorTask */
+  ServoMotorTaskHandle = osThreadNew(ctrl_servomotor, NULL, &ServoMotorTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -564,7 +567,7 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)  // while(1)
   {
-	servo_motor_main();
+	  ctrl_btn_RFID_status();
     osDelay(1);
   }
   /* USER CODE END 5 */
@@ -589,22 +592,23 @@ void rfid_processing(void *argument)
   /* USER CODE END rfid_processing */
 }
 
-/* USER CODE BEGIN Header_polling_btn */
+/* USER CODE BEGIN Header_ctrl_servomotor */
 /**
-* @brief Function implementing the pollingBtnTask thread.
+* @brief Function implementing the ServoMotorTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_polling_btn */
-void polling_btn(void *argument)
+/* USER CODE END Header_ctrl_servomotor */
+void ctrl_servomotor(void *argument)
 {
-  /* USER CODE BEGIN polling_btn */
+  /* USER CODE BEGIN ctrl_servomotor */
   /* Infinite loop */
   for(;;)
   {
+	servo_motor_main();
     osDelay(1);
   }
-  /* USER CODE END polling_btn */
+  /* USER CODE END ctrl_servomotor */
 }
 
 /**
@@ -627,8 +631,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	if (htim->Instance == TIM2)
 	{
 		TIM2_1ms_counter++;
+		TIM2_1ms_RFID_LED++;
 		TIM2_servo_motor_count++;
-		T300ms_counter++;
+		TIM2_300ms_counter++;
+		TIM2_300ms_taggingProcess++;
 	}
   /* USER CODE END Callback 1 */
 }

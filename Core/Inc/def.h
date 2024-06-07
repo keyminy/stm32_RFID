@@ -11,8 +11,7 @@
 typedef enum{
 	NORMAL = 0,
 	ENROLL,
-	DELETE,
-	RETREIVE_ALL
+	DELETE
 } RFID_STATUS;
 
 #endif /* INC_DEF_H_ */

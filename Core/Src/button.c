@@ -6,10 +6,13 @@
  */ 
 #include "button.h"
 #include "rfid_main.h"
+#include "def.h"
+#include <stdio.h>
 
 unsigned char button_status[BUTTON_NUMBER] =
 	{BUTTON_RELEASE,BUTTON_RELEASE,BUTTON_RELEASE};
 	
+cardDB cardInfo;
 
 char button0_count=0;
 
@@ -50,5 +53,23 @@ int get_button(GPIO_TypeDef  *GPIO, int button_pin, int button_num)  // 예) GPI
 }
 
 void ctrl_btn_RFID_status(void){
-
+	if (get_button(BUTTON0_GPIO_Port, BUTTON0_Pin, BUTTON0)== BUTTON_PRESS){
+		printf("ENROLL MODE!\n");
+		if(get_rfid_status() == ENROLL){
+			set_rfid_status(NORMAL);
+		}
+		else{
+			set_rfid_status(ENROLL);
+		}
+	}else if(get_button(BUTTON1_GPIO_Port, BUTTON1_Pin, BUTTON1)== BUTTON_PRESS){
+		printf("DELETE MODE!\n");
+		if(get_rfid_status() == DELETE){
+			set_rfid_status(NORMAL);
+		}
+		else{
+			set_rfid_status(DELETE);
+		}
+	}else if(get_button(BUTTON2_GPIO_Port, BUTTON2_Pin, BUTTON2)== BUTTON_PRESS){
+		print_registered_keys(&cardInfo);
+	}
 }

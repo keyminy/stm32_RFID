@@ -21,6 +21,8 @@ typedef struct _card
 
 void rfid_reader_init(void);
 void rfid_tag_processing(void);
+void set_rfid_status(uint8_t pRFID_STAUS);
+uint8_t get_rfid_status(void);
 bool isExistCard(cardDB* card, uint8_t* pRxDataStr);
 void register_rfid_key(cardDB* card, uint8_t* newKey);
 void print_registered_keys(cardDB* card);
