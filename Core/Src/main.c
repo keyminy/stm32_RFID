@@ -77,7 +77,7 @@ volatile int TIM2_1ms_counter=0;
 volatile int TIM2_1ms_RFID_LED=0;
 volatile int TIM2_300ms_taggingProcess=0;
 volatile int TIM2_300ms_counter=0;
-volatile int TIM2_servo_motor_count=0;
+volatile int TIM2_opentime_servo_1ms=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -632,7 +632,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		TIM2_1ms_counter++;
 		TIM2_1ms_RFID_LED++;
-		TIM2_servo_motor_count++;
+		TIM2_opentime_servo_1ms++;
 		TIM2_300ms_counter++;
 		TIM2_300ms_taggingProcess++;
 	}

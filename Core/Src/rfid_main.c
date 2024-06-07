@@ -64,6 +64,7 @@ void rfid_tag_processing(void) // <- I'm gonna use in while loop
 		// == RFID contack check
 		readData = mfrc522_request(PICC_REQALL, rxDataStr);
 		if (readData == CARD_FOUND) {
+			set_servo_open_flag(1);
 			// 2.Read the card information.
 			for (int i = 0; i < MAX_LEN; i++)
 				rxDataStr[i] = ' ';
