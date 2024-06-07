@@ -7,6 +7,7 @@
 #include "rfid_main.h"
 #include "mfrc522.h"    // for RFID
 #include "def.h"
+#include "servomotor.h"
 
 uint8_t rfid_check_flag=0;  // 현재 rfid를 checking중인지
 
@@ -15,9 +16,10 @@ extern TIM_HandleTypeDef htim3;   // for servo motor interface
 
 extern volatile int TIM2_300ms_counter;
 extern volatile int TIM2_1ms_RFID_LED;
+extern volatile int TIM2_opentime_servo_1ms;
 uint8_t readData;   // 1 byte save variable
 uint8_t rxDataStr[MAX_LEN];   // rfid tagging data, MAX_LEN = 16
-bool isTagged = false;
+static bool isTagged = false;
 
 static uint8_t rfid_status = NORMAL;
 
@@ -64,7 +66,7 @@ void rfid_tag_processing(void) // <- I'm gonna use in while loop
 		// == RFID contack check
 		readData = mfrc522_request(PICC_REQALL, rxDataStr);
 		if (readData == CARD_FOUND) {
-			set_servo_open_flag(1);
+			TIM2_opentime_servo_1ms = 0;
 			// 2.Read the card information.
 			for (int i = 0; i < MAX_LEN; i++)
 				rxDataStr[i] = ' ';
@@ -72,6 +74,15 @@ void rfid_tag_processing(void) // <- I'm gonna use in while loop
 
 			switch (rfid_status) {
 			case NORMAL:
+				if(isExistCard(&cardInfo,&rxDataStr)){
+					//state of servo motor is OPEN
+					set_servo_state(OPEN);
+					set_servo_open_flag(1);
+				}else{
+					//state of servo motor is LOCKED
+					set_servo_state(LOCKED);
+					set_servo_open_flag(0);
+				}
 				printf("tagged rfid : ");
 				for (int i = 0; i < 5; i++) {
 					printf("%02x ", rxDataStr[i]);
@@ -90,16 +101,17 @@ void rfid_tag_processing(void) // <- I'm gonna use in while loop
 				break;
 			}
 		}
-	    // LED Blinking logic for ENROLL state
-	    if (rfid_status == ENROLL) {
-	        if (TIM2_1ms_RFID_LED >= 500) {
-	            TIM2_1ms_RFID_LED = 0;
-	            HAL_GPIO_TogglePin(GPIOB, LED0_Pin);
-	        }
-	    } else {
-	        // Ensure LED is off when not in ENROLL state
-	        HAL_GPIO_WritePin(GPIOB, LED0_Pin, GPIO_PIN_RESET);
-	    }
+	}//end if (TIM2_300ms_counter >= 300)
+
+	// LED Blinking logic for ENROLL state
+	if (rfid_status == ENROLL) {
+		if (TIM2_1ms_RFID_LED >= 500) {
+			TIM2_1ms_RFID_LED = 0;
+			HAL_GPIO_TogglePin(GPIOB, LED0_Pin);
+		}
+	} else {
+		// Ensure LED is off when not in ENROLL state
+		HAL_GPIO_WritePin(GPIOB, LED0_Pin, GPIO_PIN_RESET);
 	}
 }
 
