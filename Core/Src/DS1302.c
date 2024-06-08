@@ -37,14 +37,12 @@ void DS1302_Init(void){
 
     // initial CE(=DS1302_RST_Pin) is Low
     HAL_GPIO_WritePin(DS1302_RST_GPIO_Port, DS1302_RST_Pin, GPIO_PIN_RESET);
-    i2c_lcd_init();
 }
 
 void DS1302_InitData(void){
 	stTime.year = 24;
 	stTime.month = 6;
 	stTime.date = 8;
-	stTime.dayofweek = 7;
 	stTime.hour = 2;
 	stTime.minutes = 33;
 	stTime.seconds = 0;
@@ -70,6 +68,31 @@ void printLCD_DS1302_data(DS1302 *pDS1302){
 	);
 	move_cursor(0, 0);
 	lcd_string(scm);
+}
+
+// 시각 보정 기능
+// settime240608170000 (2024년 06월 08일 17시 00분 00초)
+// 240608170000를 넘겨 받는다(주소로, call by reference)
+void set_rtc(char* date_time){
+	char yy[4],mm[4],dd[4]; // date
+	char hh[4],min[4],sec[4]; // time정보
+
+	strncpy(yy,date_time,2);
+	strncpy(mm,date_time+2,2); // date_time+2 = &date_time[2]
+	strncpy(dd,date_time+4,2);
+
+	strncpy(hh,date_time+6,2);
+	strncpy(min,date_time+8,2);
+	strncpy(sec,date_time+10,2);
+
+	stTime.year =    atoi(yy);
+	stTime.month =   atoi(mm);
+	stTime.date =    atoi(dd);
+	stTime.hour =    atoi(hh);
+	stTime.minutes=  atoi(min);
+	stTime.seconds=  atoi(sec);
+
+	DS1302_SetTimeDates(stTime);
 }
 
 void DS1302_Selected(void)

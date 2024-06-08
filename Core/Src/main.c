@@ -25,6 +25,7 @@
 /* USER CODE BEGIN Includes */
 #include "servomotor.h"
 #include "DS1302.h"
+#include "uart2.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -79,6 +80,11 @@ const osThreadAttr_t DS1302Task_attributes = {
   .name = "DS1302Task",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for mutex_lcd */
+osMutexId_t mutex_lcdHandle;
+const osMutexAttr_t mutex_lcd_attributes = {
+  .name = "mutex_lcd"
 };
 /* USER CODE BEGIN PV */
 uint8_t rx_data;
@@ -195,10 +201,14 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim2);  // ADD_SIKWON_0523
   HAL_TIM_Base_Start_IT(&htim11);  // ADD_SIKWON_0523
   rfid_reader_init();
+  i2c_lcd_init();
   /* USER CODE END 2 */
 
   /* Init scheduler */
   osKernelInitialize();
+  /* Create the mutex(es) */
+  /* creation of mutex_lcd */
+  mutex_lcdHandle = osMutexNew(&mutex_lcd_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -605,6 +615,7 @@ void StartDefaultTask(void *argument)
   for(;;)  // while(1)
   {
 	  ctrl_btn_RFID_status();
+	  pc_command_processing();
     osDelay(1);
   }
   /* USER CODE END 5 */
@@ -624,7 +635,10 @@ void rfid_processing(void *argument)
   for(;;)
   {
 	rfid_tag_processing();
-	printLCD_RFID_status();
+	 if(osMutexWait(mutex_lcdHandle,1000) == osOK){
+		printLCD_RFID_status();
+		osMutexRelease(mutex_lcdHandle); //unlock
+	 }
     osDelay(1);
   }
   /* USER CODE END rfid_processing */
@@ -665,9 +679,12 @@ void ctrl_DS1302(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	  DS1302_GetDate(&stTime);
-	  DS1302_GetTime(&stTime);
-	  printLCD_DS1302_data(&stTime);
+	  if(osMutexWait(mutex_lcdHandle,1000) == osOK){
+		  DS1302_GetDate(&stTime);
+		  DS1302_GetTime(&stTime);
+		  printLCD_DS1302_data(&stTime);
+		  osMutexRelease(mutex_lcdHandle); //unlock
+	  }
 
     osDelay(1);
   }

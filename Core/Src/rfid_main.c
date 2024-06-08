@@ -164,7 +164,7 @@ void register_rfid_key(cardDB* card, uint8_t* newKey) {
 
 void print_registered_keys(cardDB* card) {
     if(card->registeredKeyCount > 0){
-		printf("Print All registered RFID Keys:\n");
+		printf("Print All \n");
 		for (int i = 0; i < card->registeredKeyCount; i++) {
 			printf("Key %d: ", i + 1);
 			for (int j = 0; j < 5; j++) {
@@ -175,7 +175,6 @@ void print_registered_keys(cardDB* card) {
     }else{
 		printf("nothing to print...\n");
     }
-    return;
 }
 
 bool removeCard(cardDB* card, uint8_t* pRxDataStr) {

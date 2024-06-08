@@ -7,6 +7,7 @@
 #include "button.h"
 #include "rfid_main.h"
 #include "def.h"
+#include "i2c_lcd.h"
 #include <stdio.h>
 
 unsigned char button_status[BUTTON_NUMBER] =

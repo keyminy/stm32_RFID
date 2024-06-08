@@ -22,7 +22,7 @@ void init_servo_LOCKED(void){
 	set_servo_state(LOCKED);
 	set_servo_open_flag(0);
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); // Start PWM for the servo motor
-	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 78); // Set servo to locked position
+	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 75); // Set servo to locked position
 	servo_off_flag = 1;
 	TIM2_off_servo_1ms = 0;
 }
@@ -40,7 +40,7 @@ void servo_motor_main(void) {
 		case LOCKED:
 			if(TIM2_opentime_servo_1ms>=3000){
 				// 1.rotation of 90 dgrees
-				__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 78);
+				__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 75);
 				servo_off_flag = 1;
 				servo_open_flag = 0;
 				TIM2_off_servo_1ms = 0;
