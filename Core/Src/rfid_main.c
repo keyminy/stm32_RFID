@@ -1,18 +1,19 @@
 #include "main.h"
-
+#include "def.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include "rfid_main.h"
 #include "mfrc522.h"    // for RFID
-#include "def.h"
+
 #include "servomotor.h"
 
 uint8_t rfid_check_flag=0;  // 현재 rfid를 checking중인지
 
 extern SPI_HandleTypeDef hspi1;   // for RFID interface
 extern TIM_HandleTypeDef htim3;   // for servo motor interface
+
 
 extern volatile int TIM2_300ms_counter;
 extern volatile int TIM2_1ms_RFID_LED;
@@ -79,9 +80,8 @@ void rfid_tag_processing(void) // <- I'm gonna use in while loop
 					set_servo_state(OPEN);
 					set_servo_open_flag(1);
 				}else{
-					//state of servo motor is LOCKED
-					set_servo_state(LOCKED);
-					set_servo_open_flag(0);
+					// locking door of servomotor!
+					init_servo_LOCKED();
 				}
 				printf("tagged rfid : ");
 				for (int i = 0; i < 5; i++) {
@@ -115,6 +115,28 @@ void rfid_tag_processing(void) // <- I'm gonna use in while loop
 	}
 }
 
+void printLCD_RFID_status(void){
+	static RFID_STATUS old_RFID_STATUS;
+	char scm[20] = {0,};
+//	printf("Init : %d\n",old_RFID_STATUS); // old_RFID_STATUS = 0
+	if(old_RFID_STATUS != get_rfid_status()){
+		switch(get_rfid_status()){
+		case NORMAL:
+			sprintf(scm,"NORMAL");
+			break;
+		case ENROLL:
+			sprintf(scm,"ENROLL");
+			break;
+		case DELETE:
+			sprintf(scm,"DELETE");
+			break;
+		}
+		move_cursor(1,0);
+		lcd_string(scm);
+		old_RFID_STATUS = get_rfid_status();
+	}
+
+}
 
 bool isExistCard(cardDB* card, uint8_t* pRxDataStr) {
     for (int i = 0; i < card->registeredKeyCount; i++) {

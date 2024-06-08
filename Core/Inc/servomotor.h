@@ -17,5 +17,6 @@ typedef enum {
 void servo_motor_main(void);
 void set_servo_state(uint8_t pServoState);
 void set_servo_open_flag(uint8_t pServoFlag);
+void init_servo_LOCKED(void);
 
 #endif /* INC_SERVOMOTOR_H_ */

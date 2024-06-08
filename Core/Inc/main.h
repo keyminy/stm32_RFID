@@ -68,8 +68,6 @@ void Error_Handler(void);
 #define BUTTON1_GPIO_Port GPIOC
 #define BUTTON2_Pin GPIO_PIN_2
 #define BUTTON2_GPIO_Port GPIOC
-#define DHT11_Pin GPIO_PIN_0
-#define DHT11_GPIO_Port GPIOA
 #define USART_TX_Pin GPIO_PIN_2
 #define USART_TX_GPIO_Port GPIOA
 #define USART_RX_Pin GPIO_PIN_3
@@ -78,24 +76,16 @@ void Error_Handler(void);
 #define RFID_SEL_GPIO_Port GPIOC
 #define LED0_Pin GPIO_PIN_0
 #define LED0_GPIO_Port GPIOB
-#define LED1_Pin GPIO_PIN_1
-#define LED1_GPIO_Port GPIOB
-#define LED2_Pin GPIO_PIN_2
-#define LED2_GPIO_Port GPIOB
 #define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
 #define TCK_GPIO_Port GPIOA
-#define LED3_Pin GPIO_PIN_3
-#define LED3_GPIO_Port GPIOB
-#define LED4_Pin GPIO_PIN_4
-#define LED4_GPIO_Port GPIOB
-#define LED5_Pin GPIO_PIN_5
-#define LED5_GPIO_Port GPIOB
-#define LED6_Pin GPIO_PIN_6
-#define LED6_GPIO_Port GPIOB
-#define LED7_Pin GPIO_PIN_7
-#define LED7_GPIO_Port GPIOB
+#define DS1302_CLK_Pin GPIO_PIN_3
+#define DS1302_CLK_GPIO_Port GPIOB
+#define DS1302_DAT_Pin GPIO_PIN_4
+#define DS1302_DAT_GPIO_Port GPIOB
+#define DS1302_RST_Pin GPIO_PIN_5
+#define DS1302_RST_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

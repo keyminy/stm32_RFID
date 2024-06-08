@@ -24,6 +24,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "servomotor.h"
+#include "DS1302.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -41,6 +42,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+I2C_HandleTypeDef hi2c1;
+
 SPI_HandleTypeDef hspi1;
 
 TIM_HandleTypeDef htim2;
@@ -70,6 +73,13 @@ const osThreadAttr_t ServoMotorTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
+/* Definitions for DS1302Task */
+osThreadId_t DS1302TaskHandle;
+const osThreadAttr_t DS1302Task_attributes = {
+  .name = "DS1302Task",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
 /* USER CODE BEGIN PV */
 uint8_t rx_data;
 
@@ -78,6 +88,7 @@ volatile int TIM2_1ms_RFID_LED=0;
 volatile int TIM2_300ms_taggingProcess=0;
 volatile int TIM2_300ms_counter=0;
 volatile int TIM2_opentime_servo_1ms=0;
+volatile int TIM2_off_servo_1ms=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -88,9 +99,11 @@ static void MX_TIM11_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_I2C1_Init(void);
 void StartDefaultTask(void *argument);
 void rfid_processing(void *argument);
 void ctrl_servomotor(void *argument);
+void ctrl_DS1302(void *argument);
 
 /* USER CODE BEGIN PFP */
 extern void led_all_on(void);
@@ -104,9 +117,9 @@ extern void ledbar2_toggle(void);
 extern void led_main(void);
 extern void button0_check(void);
 extern void delay_us(unsigned int us);
-extern void DHT11_Init(void);
 extern void rfid_reader_init(void);
 extern void rfid_tag_processing(void);
+extern DS1302 stTime;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -176,11 +189,11 @@ int main(void)
   MX_TIM2_Init();
   MX_SPI1_Init();
   MX_TIM3_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   HAL_UART_Receive_IT(&huart2, &rx_data, 1);   // assign RX INT
   HAL_TIM_Base_Start_IT(&htim2);  // ADD_SIKWON_0523
   HAL_TIM_Base_Start_IT(&htim11);  // ADD_SIKWON_0523
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); // ADD_PWM_SERVO_MOTOR
   rfid_reader_init();
   /* USER CODE END 2 */
 
@@ -212,6 +225,9 @@ int main(void)
 
   /* creation of ServoMotorTask */
   ServoMotorTaskHandle = osThreadNew(ctrl_servomotor, NULL, &ServoMotorTask_attributes);
+
+  /* creation of DS1302Task */
+  DS1302TaskHandle = osThreadNew(ctrl_DS1302, NULL, &DS1302Task_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -280,6 +296,40 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 100000;
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+
 }
 
 /**
@@ -504,14 +554,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(DHT11_GPIO_Port, DHT11_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(RFID_SEL_GPIO_Port, RFID_SEL_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, LED0_Pin|LED1_Pin|LED2_Pin|LED3_Pin
-                          |LED4_Pin|LED5_Pin|LED6_Pin|LED7_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, LED0_Pin|DS1302_CLK_Pin|DS1302_DAT_Pin|DS1302_RST_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -525,13 +571,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : DHT11_Pin */
-  GPIO_InitStruct.Pin = DHT11_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(DHT11_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pin : RFID_SEL_Pin */
   GPIO_InitStruct.Pin = RFID_SEL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -539,10 +578,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(RFID_SEL_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LED0_Pin LED1_Pin LED2_Pin LED3_Pin
-                           LED4_Pin LED5_Pin LED6_Pin LED7_Pin */
-  GPIO_InitStruct.Pin = LED0_Pin|LED1_Pin|LED2_Pin|LED3_Pin
-                          |LED4_Pin|LED5_Pin|LED6_Pin|LED7_Pin;
+  /*Configure GPIO pins : LED0_Pin DS1302_CLK_Pin DS1302_DAT_Pin DS1302_RST_Pin */
+  GPIO_InitStruct.Pin = LED0_Pin|DS1302_CLK_Pin|DS1302_DAT_Pin|DS1302_RST_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -587,6 +624,7 @@ void rfid_processing(void *argument)
   for(;;)
   {
 	rfid_tag_processing();
+	printLCD_RFID_status();
     osDelay(1);
   }
   /* USER CODE END rfid_processing */
@@ -602,6 +640,7 @@ void rfid_processing(void *argument)
 void ctrl_servomotor(void *argument)
 {
   /* USER CODE BEGIN ctrl_servomotor */
+	init_servo_LOCKED();
   /* Infinite loop */
   for(;;)
   {
@@ -609,6 +648,30 @@ void ctrl_servomotor(void *argument)
     osDelay(1);
   }
   /* USER CODE END ctrl_servomotor */
+}
+
+/* USER CODE BEGIN Header_ctrl_DS1302 */
+/**
+* @brief Function implementing the DS1302Task thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_ctrl_DS1302 */
+void ctrl_DS1302(void *argument)
+{
+  /* USER CODE BEGIN ctrl_DS1302 */
+	DS1302_Init();
+	DS1302_InitData();
+  /* Infinite loop */
+  for(;;)
+  {
+	  DS1302_GetDate(&stTime);
+	  DS1302_GetTime(&stTime);
+	  printLCD_DS1302_data(&stTime);
+
+    osDelay(1);
+  }
+  /* USER CODE END ctrl_DS1302 */
 }
 
 /**
@@ -633,6 +696,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		TIM2_1ms_counter++;
 		TIM2_1ms_RFID_LED++;
 		TIM2_opentime_servo_1ms++;
+		TIM2_off_servo_1ms++;
 		TIM2_300ms_counter++;
 		TIM2_300ms_taggingProcess++;
 	}
