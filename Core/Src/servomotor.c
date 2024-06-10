@@ -48,7 +48,6 @@ void servo_motor_main(void) {
 			break;
 		}
 	}
-
 	if(servo_off_flag == 1){
 		if(TIM2_off_servo_1ms>=2000){
 			TIM2_off_servo_1ms = 0;

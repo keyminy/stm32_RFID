@@ -615,7 +615,10 @@ void StartDefaultTask(void *argument)
   for(;;)  // while(1)
   {
 	  ctrl_btn_RFID_status();
-	  pc_command_processing();
+	  if(osMutexWait(mutex_lcdHandle,1000) == osOK){
+		  pc_command_processing();
+		  osMutexRelease(mutex_lcdHandle); //unlock
+	  }
     osDelay(1);
   }
   /* USER CODE END 5 */
